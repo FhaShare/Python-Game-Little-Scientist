@@ -20,8 +20,8 @@ class GameState:
     game_active: bool = False
 
 class Tile:
-    def __init__(self, color: Tuple[int, int, int], rect: pygame.Rect):
-        self.color = color
+    def __init__(self, image: pygame.Surface, rect: pygame.Rect):
+        self.image = image
         self.rect = rect
         self.flip_progress = 0
         self.is_flipping = False
@@ -67,35 +67,7 @@ class Button:
         return self.rect.collidepoint(pos)
 
 class ScienceGame:
-    # Level 1: 4x4 grid (8 pairs needed)
-    # Level 2: 5x5 grid (12 pairs needed)
-    COLORS = {
-        1: [  # Level 1 colors (8 pairs)
-            (230, 25, 75),    # Red
-            (60, 180, 75),    # Green
-            (255, 225, 25),   # Yellow
-            (0, 130, 200),    # Blue
-            (245, 130, 48),   # Orange
-            (145, 30, 180),   # Purple
-            (70, 240, 240),   # Cyan
-            (240, 50, 230),   # Magenta
-        ],
-        2: [  # Level 2 colors (12 pairs)
-            (230, 25, 75),    # Red
-            (60, 180, 75),    # Green
-            (255, 225, 25),   # Yellow
-            (0, 130, 200),    # Blue
-            (245, 130, 48),   # Orange
-            (145, 30, 180),   # Purple
-            (70, 240, 240),   # Cyan
-            (240, 50, 230),   # Magenta
-            (210, 245, 60),   # Lime
-            (250, 190, 212),  # Pink
-            (0, 128, 128),    # Teal
-            (220, 190, 255),  # Lavender
-        ]
-    }
-
+    
     SCIENCE_MESSAGES = [
         "Excellent observation!",
         "Data match found!",
@@ -109,9 +81,9 @@ class ScienceGame:
         self.screen = self.set_screen_mode()
         pygame.display.set_caption("Science Matching Game")
         
-        self.font = pygame.font.Font(None, 60)
+        self.font = pygame.font.Font(None, 80)
         self.title_font = pygame.font.Font(None, 150)
-        self.countdown_font = pygame.font.Font(None, 450)
+        self.countdown_font = pygame.font.Font(None, 600)
         
         self.state = GameState()
         self.tiles: Dict[Tuple[int, int], Tile] = {}
@@ -122,13 +94,25 @@ class ScienceGame:
         self.transition_active = False
         self.transition_start_time = 0
         self.background_color = (20, 30, 40)
+
+        # Level 1: 4x4 grid (8 pairs needed)
+        self.tile_images = [
+            pygame.image.load("images/1.png").convert_alpha(),
+            pygame.image.load("images/2.png").convert_alpha(),
+            pygame.image.load("images/3.png").convert_alpha(),
+            pygame.image.load("images/4.png").convert_alpha(),
+            pygame.image.load("images/5.png").convert_alpha(),
+            pygame.image.load("images/6.png").convert_alpha(),
+            pygame.image.load("images/7.png").convert_alpha(),
+            pygame.image.load("images/8.png").convert_alpha(),
+        ]
         
         screen_center_x = self.screen.get_width() // 2
         self.start_button = Button("Let's Play!", 
-                                 pygame.Rect(screen_center_x - 100, 400, 200, 50),
+                                 pygame.Rect(screen_center_x - 125, 500, 300, 100),
                                  (38, 188, 81), (98, 208, 121))  # Happy green
         self.quit_button = Button("Exit Game", 
-                                pygame.Rect(screen_center_x - 100, 470, 200, 50),
+                                pygame.Rect(screen_center_x - 125, 650, 300, 100),
                                 (255, 89, 94), (255, 129, 134))  # Friendly red
         self.exit_button = Button("X", 
                                 pygame.Rect(self.screen.get_width() - 50, 10, 40, 40),
@@ -175,48 +159,22 @@ class ScienceGame:
         self.margin_x = (screen_width - (self.grid_size * self.tile_size)) // 2
         self.margin_y = ((screen_height - (self.grid_size * self.tile_size)) // 2) + 80  # Increased offset for larger header
         
-        # Get colors for current level
-        colors = self.COLORS[self.state.level]
-        
-        if self.state.level == 1:
-            needed_pairs = (self.grid_size * self.grid_size) // 2
-            color_pairs = []
-            for i in range(needed_pairs):
-                color_pairs.extend([colors[i], colors[i]])
-        else:
-            color_pairs = []
-            for i in range(12):
-                color_pairs.extend([colors[i], colors[i]])
-        
-        random.shuffle(color_pairs)
+        # Get images for tile
+        needed_pairs = (self.grid_size * self.grid_size) // 2
+        tile_images = [self.tile_images[i] for i in range(needed_pairs) for _ in range(2)]
+        random.shuffle(tile_images)
         
         # Create tiles with new positioning
         self.tiles.clear()
-        color_index = 0
-        
         for row in range(self.grid_size):
             for col in range(self.grid_size):
-                # Skip the center tile in level 2 to create donut shape
-                if self.state.level == 2 and row == 2 and col == 2:
-                    continue
-                    
                 rect = pygame.Rect(
                     self.margin_x + col * self.tile_size,
                     self.margin_y + row * self.tile_size,
                     self.tile_size - 10,
                     self.tile_size - 10
                 )
-                self.tiles[(row, col)] = Tile(color_pairs[color_index], rect)
-                color_index += 1
-    def start_next_level(self) -> None:
-        self.state.level += 1
-        self.state.matches_found = 0
-        self.state.matched_pairs.clear()
-        self.state.selected_tile = None
-        self.state.message = f"Starting Level {self.state.level}!"
-        self.setup_level()
-        self.transition_active = False
-        self.transition_start_time = 0
+                self.tiles[(row, col)] = Tile(tile_images.pop(), rect)
 
     # Also replace the handle_click method
     def handle_click(self, pos: Tuple[int, int], current_time: float) -> None:
@@ -226,29 +184,26 @@ class ScienceGame:
         x, y = pos
         row = (y - self.margin_y) // self.tile_size
         col = (x - self.margin_x) // self.tile_size
-        
-        # Skip if clicked position is not valid or is the center hole in level 2
-        if not (0 <= row < self.grid_size and 0 <= col < self.grid_size) or \
-           (self.state.level == 2 and row == 2 and col == 2):
+
+        # Check if (row, col) is within bounds and exists in self.tiles
+        if not (0 <= row < self.grid_size and 0 <= col < self.grid_size):
             return
-            
-        # Skip if the tile doesn't exist (center hole)
         if (row, col) not in self.tiles:
             return
-            
+               
         tile = self.tiles[(row, col)]
         if tile.revealed or tile.is_flipping or tile.matched:
             return
 
         tile.start_flip(current_time)
-        
+    
         if not self.state.selected_tile:
             self.state.selected_tile = (row, col)
         else:
             prev_row, prev_col = self.state.selected_tile
-            prev_tile = self.tiles[(prev_row, prev_col)]
-            
-            if tile.color == prev_tile.color:
+            prev_tile = self.tiles.get((prev_row, prev_col))
+
+            if prev_tile and tile.image == prev_tile.image:
                 tile.matched = prev_tile.matched = True
                 self.state.matched_pairs.update([(prev_row, prev_col), (row, col)])
                 self.state.matches_found += 1
@@ -257,8 +212,9 @@ class ScienceGame:
             else:
                 self.waiting_for_reset = True
                 self.reset_start_time = current_time
-            
+        
             self.state.selected_tile = None
+
 
     def update_tiles(self, current_time: float) -> None:
         if self.waiting_for_reset and current_time - self.reset_start_time > 1:
@@ -345,41 +301,20 @@ class ScienceGame:
         self.screen.blit(msg_surface, msg_rect)
 
     def draw_tile(self, tile: Tile) -> None:
-                if tile.is_flipping:
-                    scale = abs(math.cos(tile.flip_progress * math.pi))
-                    scaled_width = tile.rect.width * scale
-                    x_offset = (tile.rect.width - scaled_width) / 2
-                    scaled_rect = pygame.Rect(
-                        tile.rect.x + x_offset,
-                        tile.rect.y,
-                        scaled_width,
-                        tile.rect.height
-                    )
-                    color = tile.color if tile.flip_progress >= 0.5 else (60, 80, 100)
-                    pygame.draw.rect(self.screen, color, scaled_rect, border_radius=20)
-                    
-                    if scale > 0.1:
-                        center = scaled_rect.center
-                        if tile.flip_progress >= 0.5:
-                            for radius in (15, 30):
-                                pygame.draw.circle(self.screen, (255, 255, 255, 128), 
-                                                center, int(radius * scale), 1)
-                        else:
-                            for offset in range(0, 31, 15):
-                                pygame.draw.circle(self.screen, (100, 150, 200),
-                                                center, int(offset * scale), 1)
-                else:
-                    if tile.revealed:
-                        pygame.draw.rect(self.screen, tile.color, tile.rect, border_radius=20)
-                        for radius in (15, 30):
-                            pygame.draw.circle(self.screen, (255, 255, 255, 128), 
-                                            tile.rect.center, radius, 1)
-                    else:
-                        pygame.draw.rect(self.screen, (60, 80, 100), tile.rect, border_radius=20)
-                        pygame.draw.rect(self.screen, (80, 100, 120), tile.rect, 2, border_radius=20)
-                        for offset in range(0, 31, 15):
-                            pygame.draw.circle(self.screen, (100, 150, 200),
-                                            tile.rect.center, offset, 1)
+        if tile.is_flipping:
+            scale = abs(math.cos(tile.flip_progress * math.pi))
+            scaled_width = tile.rect.width * scale
+            x_offset = (tile.rect.width - scaled_width) / 2
+            scaled_rect = pygame.Rect(tile.rect.x + x_offset, tile.rect.y, scaled_width, tile.rect.height)
+            if tile.flip_progress >= 0.5 and tile.image:
+                self.screen.blit(tile.image, scaled_rect)
+            else:
+                pygame.draw.rect(self.screen, (194, 224, 60), scaled_rect, border_radius=20)
+        else:
+            if tile.revealed and tile.image:
+                self.screen.blit(tile.image, tile.rect)
+            elif not tile.revealed:
+                pygame.draw.rect(self.screen, (194, 224, 60), tile.rect, border_radius=20)
 
     
     def reset_game(self) -> None:
@@ -400,42 +335,41 @@ class ScienceGame:
         self.transition_start_time = 0
         self.waiting_for_reset = False
 
-    def show_transition_screen(self, text1: str, text2: str) -> None:
+    def show_transition_screen(self, text1: str) -> None:
         overlay = pygame.Surface(self.screen.get_size())
         overlay.set_alpha(200)
         overlay.fill((20, 30, 40))
-        
+    
         msg1 = self.title_font.render(text1, True, (100, 200, 255))
-        msg2 = self.font.render(text2, True, (255, 255, 255))
-        
+    
         screen_center_x = self.screen.get_width() // 2
-        
-        # Only show score and play again button after level 2
-        if self.state.level == 2:
-            # Create larger font for score display
-            score_font = pygame.font.Font(None, 100)  # Larger font for final score
-            stats_font = pygame.font.Font(None, 60)  # Regular font for other stats
-            
-            score_text = score_font.render(f"Final Score: {self.state.score}", True, (255, 255, 255))
-            time_text = stats_font.render(f"Time: {self.state.game_time:.1f}s", True, (255, 255, 255))
-            high_score_text = stats_font.render(f"High Score: {self.state.high_score}", True, (255, 255, 255))
-            
-            # Position play again button with more spacing
-            self.play_again_button = Button("Play Again", 
-                                          pygame.Rect(screen_center_x - 100, 500, 200, 50),
-                                          (0, 200, 0), (0, 255, 0))
-        
+    
+        # Create larger font for score display
+        score_font = pygame.font.Font(None, 100)  # Larger font for final score
+        stats_font = pygame.font.Font(None, 80)  # Regular font for other stats
+
+        # Ensure score, time, and high score texts are created to avoid unbound variable issues
+        score_text = score_font.render(f"Final Score: {self.state.score}", True, (255, 255, 255))
+        time_text = stats_font.render(f"Time: {self.state.game_time:.1f}s", True, (255, 255, 255))
+        high_score_text = stats_font.render(f"High Score: {self.state.high_score}", True, (255, 255, 255))
+    
+        # Position play again button with more spacing
+        self.play_again_button = Button("Play Again", 
+                                pygame.Rect(screen_center_x - 150, 700, 300, 70),
+                                (0, 200, 0), (0, 255, 0))
+
+        # Display overlay and messages
         self.screen.blit(overlay, (0, 0))
-        self.screen.blit(msg1, (screen_center_x - msg1.get_width() // 2, 150))  # Moved up
-        self.screen.blit(msg2, (screen_center_x - msg2.get_width() // 2, 220))  # Moved up
-        
-        if self.state.level == 2:
-            # Better spacing between elements
-            self.screen.blit(score_text, (screen_center_x - score_text.get_width() // 2, 300))
-            self.screen.blit(time_text, (screen_center_x - time_text.get_width() // 2, 400))
-            self.screen.blit(high_score_text, (screen_center_x - high_score_text.get_width() // 2, 450))
-            self.play_again_button.draw(self.screen)
-        
+        self.screen.blit(msg1, (screen_center_x - msg1.get_width() // 2, 300))  # Adjusted positioning
+    
+        # Display final score and other stats on the transition screen
+        self.screen.blit(score_text, (screen_center_x - score_text.get_width() // 2, 450))
+        self.screen.blit(time_text, (screen_center_x - time_text.get_width() // 2, 550))
+        self.screen.blit(high_score_text, (screen_center_x - high_score_text.get_width() // 2, 600))
+
+        # Draw the play again button
+        self.play_again_button.draw(self.screen)
+    
         pygame.display.flip()
     
     def draw_start_screen(self) -> None:
@@ -469,7 +403,7 @@ class ScienceGame:
                         return
                     
                     # Only check for play again button in level 2
-                    if self.transition_active and self.state.level == 2 and hasattr(self, 'play_again_button'):
+                    if self.transition_active and self.state.game_complete and hasattr(self, 'play_again_button'):
                         if self.play_again_button.is_clicked(event.pos):
                             self.reset_game()
                             continue
@@ -521,23 +455,10 @@ class ScienceGame:
                         if not self.transition_active:
                             self.transition_active = True
                             self.transition_start_time = current_time
-                            if self.state.level == 1:
-                                self.show_transition_screen(
-                                    "EXPERIMENT 1 COMPLETE!",
-                                    "Preparing Level 2... Harder level up ahead!"
-
-                                )
-                            else:
-                                self.show_transition_screen(
-                                    "CONGRATULATIONS! ALL LEVELS COMPLETE!",
-                                    f"Final Score: {self.state.score} - Time: {self.state.game_time:.1f}s"
-                                )
+                            self.show_transition_screen("CONGRATULATIONS!!")
 
                         if current_time - self.transition_start_time >= 2:
-                            if self.state.level == 1:
-                                self.start_next_level()
-                            else:
-                                self.state.game_complete = True
+                            self.state.game_complete = True
 
                     # Continue drawing the game
                     if not self.transition_active:
