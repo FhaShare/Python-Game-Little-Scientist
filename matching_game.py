@@ -109,8 +109,9 @@ class ScienceGame:
         self.screen = self.set_screen_mode()
         pygame.display.set_caption("Science Matching Game")
         
-        self.font = pygame.font.Font(None, 36)
-        self.title_font = pygame.font.Font(None, 48)
+        self.font = pygame.font.Font(None, 60)
+        self.title_font = pygame.font.Font(None, 150)
+        self.countdown_font = pygame.font.Font(None, 450)
         
         self.state = GameState()
         self.tiles: Dict[Tuple[int, int], Tile] = {}
@@ -412,8 +413,8 @@ class ScienceGame:
         # Only show score and play again button after level 2
         if self.state.level == 2:
             # Create larger font for score display
-            score_font = pygame.font.Font(None, 92)  # Larger font for final score
-            stats_font = pygame.font.Font(None, 48)  # Regular font for other stats
+            score_font = pygame.font.Font(None, 100)  # Larger font for final score
+            stats_font = pygame.font.Font(None, 60)  # Regular font for other stats
             
             score_text = score_font.render(f"Final Score: {self.state.score}", True, (255, 255, 255))
             time_text = stats_font.render(f"Time: {self.state.game_time:.1f}s", True, (255, 255, 255))
@@ -492,7 +493,7 @@ class ScienceGame:
                 
                 if countdown_elapsed < 3:
                     self.screen.fill(self.background_color)
-                    countdown_text = self.title_font.render(
+                    countdown_text = self.countdown_font.render(
                         str(3 - int(countdown_elapsed)), 
                         True, 
                         (255, 255, 255)
