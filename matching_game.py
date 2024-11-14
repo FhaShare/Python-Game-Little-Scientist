@@ -326,7 +326,7 @@ class ScienceGame:
             self.state.best_time = self.state.game_time
         
         # Reset game state
-        self.state = GameState(high_score=self.state.high_score, best_time=self.state.best_time)
+        self.state = GameState(high_score = self.state.high_score, best_time = self.state.best_time)
         self.tiles.clear()
         self.setup_level()
         self.game_started = False
@@ -338,7 +338,7 @@ class ScienceGame:
     def show_transition_screen(self, text1: str) -> None:
         overlay = pygame.Surface(self.screen.get_size())
         overlay.set_alpha(200)
-        overlay.fill((20, 30, 40))
+        overlay.fill((20, 20, 20))
     
         msg1 = self.title_font.render(text1, True, (100, 200, 255))
     
@@ -348,24 +348,24 @@ class ScienceGame:
         score_font = pygame.font.Font(None, 100)  # Larger font for final score
         stats_font = pygame.font.Font(None, 80)  # Regular font for other stats
 
-        # Ensure score, time, and high score texts are created to avoid unbound variable issues
-        score_text = score_font.render(f"Final Score: {self.state.score}", True, (255, 255, 255))
+        # Ensure score, time, and best_time texts are created to avoid unbound variable issues
+        score_text = stats_font.render(f"Final Score: {self.state.score}", True, (255, 255, 255))
         time_text = stats_font.render(f"Time: {self.state.game_time:.1f}s", True, (255, 255, 255))
-        high_score_text = stats_font.render(f"High Score: {self.state.high_score}", True, (255, 255, 255))
+        best_time_text = score_font.render(f"Best Time: {self.state.best_time:.1f}s", True, (255, 255, 255))
     
         # Position play again button with more spacing
         self.play_again_button = Button("Play Again", 
-                                pygame.Rect(screen_center_x - 150, 700, 300, 70),
+                                pygame.Rect(screen_center_x - 150, 800, 300, 70),
                                 (0, 200, 0), (0, 255, 0))
 
         # Display overlay and messages
         self.screen.blit(overlay, (0, 0))
-        self.screen.blit(msg1, (screen_center_x - msg1.get_width() // 2, 300))  # Adjusted positioning
+        self.screen.blit(msg1, (screen_center_x - msg1.get_width() // 2, 250))  # Adjusted positioning
     
         # Display final score and other stats on the transition screen
-        self.screen.blit(score_text, (screen_center_x - score_text.get_width() // 2, 450))
-        self.screen.blit(time_text, (screen_center_x - time_text.get_width() // 2, 550))
-        self.screen.blit(high_score_text, (screen_center_x - high_score_text.get_width() // 2, 600))
+        self.screen.blit(score_text, (screen_center_x - score_text.get_width() // 2, 400))
+        self.screen.blit(time_text, (screen_center_x - time_text.get_width() // 2, 500))
+        self.screen.blit(best_time_text, (screen_center_x - best_time_text.get_width() // 2, 600))
 
         # Draw the play again button
         self.play_again_button.draw(self.screen)
